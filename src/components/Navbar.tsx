@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from '@/components/ThemeToggle'
-import { ShoppingBag, User, LogOut, Menu, X, ShoppingCart } from 'lucide-react'
+import { ShoppingBag, LogOut, Menu, X, ShoppingCart } from 'lucide-react'
 
 export default function Navbar() {
   const { user, logout } = useAuth()

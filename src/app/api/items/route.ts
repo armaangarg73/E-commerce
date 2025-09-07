@@ -1,36 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client"; // <- Import types from Prisma
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const category = searchParams.get('category')
-    const minPrice = searchParams.get('minPrice')
-    const maxPrice = searchParams.get('maxPrice')
-    const search = searchParams.get('search')
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const category = searchParams.get("category");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+    const search = searchParams.get("search");
 
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
-    // Build where clause
-       const where: Prisma.ItemWhereInput = {};
-    
-    if (category) {
-      where.category = category
-    }
-    
+    // Correct type for where
+    const where: Prisma.ItemWhereInput = {};
+
+    if (category) where.category = category;
+
     if (minPrice || maxPrice) {
-      where.price = {}
-      if (minPrice) where.price.gte = parseFloat(minPrice)
-      if (maxPrice) where.price.lte = parseFloat(maxPrice)
+      where.price = {};
+      if (minPrice) where.price.gte = parseFloat(minPrice);
+      if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
-    
+
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ]
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
     }
 
     const [items, total] = await Promise.all([
@@ -38,10 +37,10 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" },
       }),
-      prisma.item.count({ where })
-    ])
+      prisma.item.count({ where }),
+    ]);
 
     return NextResponse.json({
       items,
@@ -49,28 +48,28 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
-    })
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    console.error('Get items error:', error)
+    console.error("Get items error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { name, description, price, category, image, stock } = body
+    const body = await request.json();
+    const { name, description, price, category, image, stock } = body;
 
     if (!name || !description || !price || !category) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: "Missing required fields" },
         { status: 400 }
-      )
+      );
     }
 
     const item = await prisma.item.create({
@@ -82,19 +81,14 @@ export async function POST(request: NextRequest) {
         image: image || null,
         stock: parseInt(stock) || 0,
       },
-    })
+    });
 
-    return NextResponse.json({
-      message: 'Item created successfully',
-      item,
-    })
+    return NextResponse.json({ message: "Item created successfully", item });
   } catch (error) {
-    console.error('Create item error:', error)
+    console.error("Create item error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
 }
-
-
