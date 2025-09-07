@@ -1,115 +1,116 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import Navbar from '@/components/Navbar'
-import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
+import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 interface CartItem {
-  id: string
-  quantity: number
+  id: string;
+  quantity: number;
   item: {
-    id: string
-    name: string
-    description: string
-    price: number
-    category: string
-    image?: string
-    stock: number
-  }
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    image?: string;
+    stock: number;
+  };
 }
 
 export default function CartPage() {
-  const { user, token } = useAuth()
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState<string | null>(null)
+  const { user, token } = useAuth();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
 
-  const fetchCart = async () => {
+  // Wrap fetchCart in useCallback to satisfy ESLint exhaustive-deps
+  const fetchCart = useCallback(async () => {
     if (!user || !token) {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
 
     try {
-      const response = await fetch('/api/cart', {
+      const response = await fetch("/api/cart", {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setCartItems(data.cartItems)
-        setTotal(data.total)
+        const data = await response.json();
+        setCartItems(data.cartItems);
+        setTotal(data.total);
       }
     } catch (error) {
-      console.error('Error fetching cart:', error)
+      console.error("Error fetching cart:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, [user, token]);
 
   useEffect(() => {
-    fetchCart()
-  }, [user, token])
+    fetchCart();
+  }, [fetchCart]);
 
   const updateQuantity = async (cartItemId: string, newQuantity: number) => {
-    if (!token) return
+    if (!token) return;
 
-    setUpdating(cartItemId)
+    setUpdating(cartItemId);
     try {
       const response = await fetch(`/api/cart/${cartItemId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ quantity: newQuantity }),
-      })
+      });
 
       if (response.ok) {
-        await fetchCart() // Refresh cart data
+        await fetchCart();
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to update quantity')
+        const error = await response.json();
+        alert(error.error || "Failed to update quantity");
       }
     } catch (error) {
-      console.error('Error updating quantity:', error)
-      alert('Failed to update quantity')
+      console.error("Error updating quantity:", error);
+      alert("Failed to update quantity");
     } finally {
-      setUpdating(null)
+      setUpdating(null);
     }
-  }
+  };
 
   const removeItem = async (cartItemId: string) => {
-    if (!token) return
+    if (!token) return;
 
-    setUpdating(cartItemId)
+    setUpdating(cartItemId);
     try {
       const response = await fetch(`/api/cart/${cartItemId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
       if (response.ok) {
-        await fetchCart() // Refresh cart data
+        await fetchCart();
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to remove item')
+        const error = await response.json();
+        alert(error.error || "Failed to remove item");
       }
     } catch (error) {
-      console.error('Error removing item:', error)
-      alert('Failed to remove item')
+      console.error("Error removing item:", error);
+      alert("Failed to remove item");
     } finally {
-      setUpdating(null)
+      setUpdating(null);
     }
-  }
+  };
 
   if (!user) {
     return (
@@ -118,8 +119,12 @@ export default function CartPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Sign in to view your cart</h2>
-            <p className="text-gray-600 mb-6">You need to be signed in to view and manage your cart items.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Sign in to view your cart
+            </h2>
+            <p className="text-gray-600 mb-6">
+              You need to be signed in to view and manage your cart items.
+            </p>
             <div className="space-x-4">
               <Link
                 href="/auth/login"
@@ -137,7 +142,7 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -164,13 +169,13 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center mb-6">
           <Link
@@ -182,13 +187,19 @@ export default function CartPage() {
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Shopping Cart</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+          Shopping Cart
+        </h1>
 
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-            <p className="text-gray-600 mb-6">Looks like you haven't added any items to your cart yet.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Your cart is empty
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Looks like you have not added any items to your cart yet.
+            </p>
             <Link
               href="/"
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
@@ -202,7 +213,10 @@ export default function CartPage() {
             <div className="lg:col-span-2">
               <div className="space-y-4">
                 {cartItems.map((cartItem) => (
-                  <div key={cartItem.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors duration-200">
+                  <div
+                    key={cartItem.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors duration-200"
+                  >
                     <div className="flex items-center space-x-4">
                       <div className="relative h-24 w-24 bg-gray-200 rounded-lg overflow-hidden">
                         {cartItem.item.image ? (
@@ -234,8 +248,12 @@ export default function CartPage() {
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center border border-gray-300 rounded-md">
                           <button
-                            onClick={() => updateQuantity(cartItem.id, cartItem.quantity - 1)}
-                            disabled={updating === cartItem.id || cartItem.quantity <= 1}
+                            onClick={() =>
+                              updateQuantity(cartItem.id, cartItem.quantity - 1)
+                            }
+                            disabled={
+                              updating === cartItem.id || cartItem.quantity <= 1
+                            }
                             className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Minus className="h-4 w-4" />
@@ -244,8 +262,13 @@ export default function CartPage() {
                             {cartItem.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(cartItem.id, cartItem.quantity + 1)}
-                            disabled={updating === cartItem.id || cartItem.quantity >= cartItem.item.stock}
+                            onClick={() =>
+                              updateQuantity(cartItem.id, cartItem.quantity + 1)
+                            }
+                            disabled={
+                              updating === cartItem.id ||
+                              cartItem.quantity >= cartItem.item.stock
+                            }
                             className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Plus className="h-4 w-4" />
@@ -264,7 +287,8 @@ export default function CartPage() {
 
                     <div className="mt-4 flex justify-between items-center">
                       <span className="text-sm text-gray-600">
-                        Subtotal: ${(cartItem.item.price * cartItem.quantity).toFixed(2)}
+                        Subtotal: $
+                        {(cartItem.item.price * cartItem.quantity).toFixed(2)}
                       </span>
                       {cartItem.quantity >= cartItem.item.stock && (
                         <span className="text-sm text-orange-600">
@@ -280,11 +304,15 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-                
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Order Summary
+                </h2>
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal ({cartItems.length} items)</span>
+                    <span className="text-gray-600">
+                      Subtotal ({cartItems.length} items)
+                    </span>
                     <span className="font-medium">${total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -298,7 +326,9 @@ export default function CartPage() {
                   <div className="border-t pt-3">
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold">Total</span>
-                      <span className="text-lg font-semibold">${total.toFixed(2)}</span>
+                      <span className="text-lg font-semibold">
+                        ${total.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -316,5 +346,5 @@ export default function CartPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
