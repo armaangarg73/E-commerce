@@ -5,11 +5,11 @@ import { getUserIdFromRequest } from "@/lib/auth";
 // GET /api/cart/[id]
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } } // <- NOT a Promise
+  context: { params: Promise<{ id: string }> } // <- IS a Promise in Next.js 15+
 ) {
-  const { id } = context.params; // directly use id
-
   try {
+    const { id } = await context.params; // await the params Promise
+
     const userId = getUserIdFromRequest(request);
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,25 +38,27 @@ export async function GET(
 // PUT /api/cart/[id]
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } } // <- NOT a Promise
+  context: { params: Promise<{ id: string }> } // <- IS a Promise in Next.js 15+
 ) {
-  const { id } = context.params;
-  const userId = getUserIdFromRequest(request);
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
+    const { id } = await context.params; // await the params Promise
+
+    const userId = getUserIdFromRequest(request);
+    if (!userId)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const { quantity } = body;
-    if (quantity === undefined)
+
+    if (quantity === undefined || quantity < 0)
       return NextResponse.json(
-        { error: "Quantity is required" },
+        { error: "Valid quantity is required" },
         { status: 400 }
       );
 
     const updatedCartItem = await prisma.cartItem.update({
       where: { userId_itemId: { userId, itemId: id } },
-      data: { quantity },
+      data: { quantity: parseInt(quantity) },
       include: { item: true },
     });
 
@@ -66,6 +68,18 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Update cart item error:", error);
+
+    // Handle case where cart item doesn't exist
+    if (
+      error instanceof Error &&
+      error.message.includes("Record to update not found")
+    ) {
+      return NextResponse.json(
+        { error: "Cart item not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -76,14 +90,15 @@ export async function PUT(
 // DELETE /api/cart/[id]
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } } // <- NOT a Promise
+  context: { params: Promise<{ id: string }> } // <- IS a Promise in Next.js 15+
 ) {
-  const { id } = context.params;
-  const userId = getUserIdFromRequest(request);
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
+    const { id } = await context.params; // await the params Promise
+
+    const userId = getUserIdFromRequest(request);
+    if (!userId)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await prisma.cartItem.delete({
       where: { userId_itemId: { userId, itemId: id } },
     });
@@ -91,6 +106,18 @@ export async function DELETE(
     return NextResponse.json({ message: "Cart item removed from cart" });
   } catch (error) {
     console.error("Delete cart item error:", error);
+
+    // Handle case where cart item doesn't exist
+    if (
+      error instanceof Error &&
+      error.message.includes("Record to delete does not exist")
+    ) {
+      return NextResponse.json(
+        { error: "Cart item not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
